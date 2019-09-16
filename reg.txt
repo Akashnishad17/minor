@@ -1,0 +1,29 @@
+create table Student000 (roll int, name string, marks double);
+create table [a-zA-Z_][a-zA-Z0-9_]+ ?\\(([a-zA-Z_][a-zA-Z0-9_]+ (int|string|double)\\,? ?)+\\);$
+
+insert into Student000 values (5,Akash Nishad,85.67);
+insert into [a-zA-Z_][a-zA-Z0-9_]+ values ?\\(([a-zA-Z0-9_][a-zA-Z0-9.]+ ?\\,? ?)+\\);$
+
+create database upes;
+create database [a-zA-Z_][a-zA-Z0-9_]+;$
+
+select *from Student000;
+select \\* ?from [a-zA-Z_][a-zA-Z0-9_]+;$
+
+drop table Student;
+drop table [a-zA-Z_][a-zA-Z0-9_]+;$
+
+drop upes;
+drop [a-zA-Z_][a-zA-Z0-9_]+;$
+
+use upes;
+use [a-zA-Z_][a-zA-Z0-9_]+;$
+
+show databases;
+show databases;$
+
+show tables;
+show tables;$
+
+select name,roll from Student000;
+select ([a-zA-Z_][a-zA-Z0-9_]+ ?\\,? ?)+ from [a-zA-Z_][a-zA-Z0-9_]+;$
