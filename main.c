@@ -8,11 +8,17 @@ const char *s2 = "drop [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s3 = "show databases;$";
 const char *s4 = "create database [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s5 = "create table [a-zA-Z_][a-zA-Z0-9_]+ ?\\(([a-zA-Z_][a-zA-Z0-9_]+ (int|string|double)\\,? ?)+\\);$";
-const char *s6 = "insert into [a-zA-Z_][a-zA-Z0-9_]+ values ?\\(([a-zA-Z0-9_][a-zA-Z0-9.]+ ?\\,? ?)+\\);$";
+const char *s6 = "insert into [a-zA-Z_][a-zA-Z0-9_]+ values\\(([a-zA-Z0-9_][a-zA-Z0-9.]+\\,?)+\\);$";
 const char *s7 = "show tables;$";
 const char *s8 = "select \\* ?from [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s9 = "drop table [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s10 = "select ([a-zA-Z_][a-zA-Z0-9_]+ ?\\,? ?)+ from [a-zA-Z_][a-zA-Z0-9_]+;$";
+
+struct key
+{
+	char *k;
+	struct key *next;
+}*head=NULL;
 	
 char query[100];
 int match(const char *string, const char *pattern)
@@ -52,38 +58,67 @@ int checkSyntax()
  		return 0;
 }
 
-/*void findKeywords()
+void storeKeywords(char *p)
 {
-	return;
+	struct key *K = (struct key*)malloc(sizeof(struct key));
+	K->k=p;
+	K->next = NULL;
+	if(head == NULL)
+		head = K;
+	else
+	{
+		struct key *t = head;
+		while(t->next != NULL)
+			t = t->next;
+		t->next = K;  
+	}
 }
 
-void storeKeywords()
+void findKeywords()
 {
-	return;
+	char *t = strtok(query," (),;");
+	while(t != NULL)
+	{
+		storeKeywords(t);
+		t= strtok(NULL," (),;");
+	}
 }
 
+
+/*
 void processQuery()
 {
 	return;
 }*/
+
+void deleteKeywords()
+{
+	struct key *current = head;
+	struct key *next;
+	while(current != NULL)
+	{
+		next = current->next;
+		free(current);
+		current = next;
+	}
+	head = NULL;
+}
 
 void run()
 {
     // Step 2
     if(checkSyntax()==1)
     {
-    	printf("No Error\n");
-    	//findKeywords();
-
-    	// Step 3
-    	//storeKeywords();
-
+    	printf("No Error\n"); 	
+    	findKeywords();
     	// Step 4
     	//processQuery();
+    	deleteKeywords();
     }
     else
     	printf("Syntax Error\n");
 }
+
 
 void cli()
 {
