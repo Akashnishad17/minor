@@ -11,11 +11,12 @@ const char *s2 = "drop [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s3 = "show databases;$";
 const char *s4 = "create database [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s5 = "create table [a-zA-Z_][a-zA-Z0-9_]+ ?\\(([a-zA-Z_][a-zA-Z0-9_]+ (int|string|double)\\,? ?)+\\);$";
-const char *s6 = "insert into [a-zA-Z_][a-zA-Z0-9_]+ values\\(([a-zA-Z0-9_][a-zA-Z0-9.]+\\,?)+\\);$";
+const char *s6 = "insert into [a-zA-Z_][a-zA-Z0-9_]+ values ?\\(([a-zA-Z0-9_\\.]+\\,?)+\\);$";
 const char *s7 = "show tables;$";
 const char *s8 = "select \\* ?from [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s9 = "drop table [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s10 = "select ([a-zA-Z_][a-zA-Z0-9_]+ ?\\,? ?)+ from [a-zA-Z_][a-zA-Z0-9_]+;$";
+const char *s11 = "desc [a-zA-Z_][a-zA-Z0-9_]+;$";
 
 struct key
 {
@@ -162,6 +163,37 @@ void deleteTable(char *t)
 	chdir("..");
 }
 
+void descTable(char *K)
+{
+	chdir("database");
+	chdir(database);
+	FILE *fp;
+	if(access(K,F_OK) != -1)
+	{
+		fp = fopen(K,"r");
+		char s[100];
+		fgets(s,100,fp);
+		fclose(fp);
+		char *t = strtok(s,",");
+		printf("\tColumnn\tType\n");
+		int i=0;
+		while(t != NULL)
+		{
+			printf("\t%s",t);
+			t= strtok(NULL,",");
+			i++;
+			if(i%2==0)
+				printf("\n");
+		}
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
 char query[100];
 int match(const char *string, const char *pattern)
 {
@@ -195,6 +227,8 @@ int checkSyntax()
  	else if(match(p,s9)==1)
  		return 1;
  	else if(match(p,s10)==1)
+ 		return 1;
+ 	else if(match(p,s11)==1)
  		return 1;
  	else
  		return 0;
@@ -268,6 +302,11 @@ void processQuery()
 			K = K->next;
 			createTable(K);
 		}
+	}
+	else if(strcmp("desc",K->k)==0)
+	{
+		K = K->next;
+		descTable(K->k);
 	}
 }
 
