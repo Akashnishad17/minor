@@ -4,6 +4,7 @@
 #include <regex.h>
 #include <dirent.h>
 #include <errno.h>
+#include <unistd.h>
 
 const char *s1 = "use [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s2 = "drop [a-zA-Z_][a-zA-Z0-9_]+;$";
@@ -27,7 +28,7 @@ char database[10] = "default";
 void createDatabase(char *d)
 {
 	chdir("database");
-	int check = mkdir(d);
+	int check = mkdir(d,0700);
 	chdir("..");
 	if(!check)
 	{
@@ -94,6 +95,71 @@ void showDatabases()
 	{
 		printf("No database created\n");
 	}
+}
+
+void createTable(struct key *K)
+{
+	chdir("database");
+	chdir(database);
+	FILE *fp;
+	if(access(K->k,F_OK) == -1)
+	{
+		fp = fopen(K->k,"w");
+		K = K->next;
+		while(K != NULL)
+		{
+			fputs(K->k,fp);
+			K =	K->next;
+			if(K != NULL)
+				fputc(',',fp);
+		} 
+		fclose(fp);
+		printf("Table created\n");
+	}
+	else
+	{
+		printf("Table already exists\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
+void showTables()
+{
+	chdir("database");
+	chdir(database);
+	struct dirent *dir;
+	DIR *d = opendir(".");
+	chdir("..");
+	chdir("..");
+	if(d != NULL)
+	{
+		while((dir=readdir(d)) != NULL)
+		{
+			printf("%s\n",dir->d_name);
+		}
+		close(d);
+	}
+	else
+	{
+		printf("No tables created\n");
+	}
+}
+
+void deleteTable(char *t)
+{
+	chdir("database");
+	chdir(database);
+	if(remove(t) == 0)
+	{
+		printf("Table deleted\n");
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
 }
 
 char query[100];
@@ -175,12 +241,19 @@ void processQuery()
 		if (strcmp("databases",K->k)==0)
 			showDatabases();
 		else if (strcmp("tables",K->k)==0);
-			//showTables();
+			showTables();
 	}
 	else if(strcmp("drop",K->k)==0)
 	{
 		K = K->next;
-		deleteDatabase(K->k);
+		if(strcmp("table",K->k)==0)
+		{
+			deleteTable(K->next->k);
+		}
+		else
+		{
+			deleteDatabase(K->k);
+		}
 	}
 	else if(strcmp("create",K->k)==0)
 	{
@@ -193,7 +266,7 @@ void processQuery()
 		else if(strcmp("table",K->k)==0)
 		{	
 			K = K->next;
-			//printf("%s",K->k);
+			createTable(K);
 		}
 	}
 }
