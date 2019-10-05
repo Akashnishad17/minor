@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <regex.h>
+#include <dirent.h>
+#include <errno.h>
 
 const char *s1 = "use [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s2 = "drop [a-zA-Z_][a-zA-Z0-9_]+;$";
@@ -19,7 +21,81 @@ struct key
 	char *k;
 	struct key *next;
 }*head=NULL;
+
+char database[10] = "default";
+
+void createDatabase(char *d)
+{
+	chdir("database");
+	int check = mkdir(d);
+	chdir("..");
+	if(!check)
+	{
+		printf("%s created\n",d);
+	}
+	else
+	{
+		printf("Database already exists\n");
+		return;
+	}
 	
+}
+
+void openDatabase(char *d)
+{
+	chdir("database");
+	DIR *check = opendir(d);
+	chdir("..");
+	if(check)
+	{
+		closedir(check);
+		strcpy(database,d);
+		printf("Switched to %s\n",database);
+	}
+	else
+	{
+		printf("%s does not exist\n",d);
+	}
+}
+
+
+void deleteDatabase(char *d)
+{
+	chdir("database");
+	int r = remove(d);
+	chdir("..");
+	if(!r)
+	{
+		printf("%s deleted\n",d);
+		if(strcmp(database,"d")==0)
+			strcpy(database,"default");
+	}
+	else
+	{
+		printf("%s does not exist\n",d);
+	}
+}
+
+void showDatabases()
+{
+	chdir("database");
+	struct dirent *dir;
+	DIR *d = opendir(".");
+	chdir("..");
+	if(d)
+	{
+		while((dir=readdir(d)) != NULL)
+		{
+			printf("%s\n",dir->d_name);
+		}
+		close(d);
+	}
+	else
+	{
+		printf("No database created\n");
+	}
+}
+
 char query[100];
 int match(const char *string, const char *pattern)
 {
@@ -85,11 +161,42 @@ void findKeywords()
 }
 
 
-/*
 void processQuery()
 {
-	return;
-}*/
+	struct key *K = head;
+	if(strcmp("use",K->k)==0)
+	{
+		K = K->next;
+		openDatabase(K->k);
+	}
+	else if(strcmp("show",K->k)==0)
+	{
+		K = K->next;
+		if (strcmp("databases",K->k)==0)
+			showDatabases();
+		else if (strcmp("tables",K->k)==0);
+			//showTables();
+	}
+	else if(strcmp("drop",K->k)==0)
+	{
+		K = K->next;
+		deleteDatabase(K->k);
+	}
+	else if(strcmp("create",K->k)==0)
+	{
+		K = K->next;
+		if(strcmp("database",K->k)==0)
+		{	
+			K = K->next;
+			createDatabase(K->k);
+		}
+		else if(strcmp("table",K->k)==0)
+		{	
+			K = K->next;
+			//printf("%s",K->k);
+		}
+	}
+}
 
 void deleteKeywords()
 {
@@ -109,10 +216,10 @@ void run()
     // Step 2
     if(checkSyntax()==1)
     {
-    	printf("No Error\n"); 	
+    	//printf("No Error\n"); 	
     	findKeywords();
     	// Step 4
-    	//processQuery();
+    	processQuery();
     	deleteKeywords();
     }
     else
