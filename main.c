@@ -5,6 +5,8 @@
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 const char *s1 = "use [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s2 = "drop [a-zA-Z_][a-zA-Z0-9_]+;$";
@@ -90,7 +92,7 @@ void showDatabases()
 		{
 			printf("%s\n",dir->d_name);
 		}
-		close(d);
+		//close(d);
 	}
 	else
 	{
@@ -139,7 +141,7 @@ void showTables()
 		{
 			printf("%s\n",dir->d_name);
 		}
-		close(d);
+		//close(d);
 	}
 	else
 	{
@@ -154,6 +156,71 @@ void deleteTable(char *t)
 	if(remove(t) == 0)
 	{
 		printf("Table deleted\n");
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
+int validateData(struct key *K)
+{
+	
+	FILE *fp;
+	fp = fopen(K->k,"r");
+	char s[100];
+	fgets(s,100,fp);
+	fclose(fp);
+	K = K->next->next;
+	char *t = strtok(s,",");
+	while(t != NULL)
+	{
+		t= strtok(NULL,",");
+		if(strcmp("int",t)==0)
+		{
+			char p[20];
+			snprintf(p,20,"%d",atoi(K->k));
+			if(strcmp(p,K->k) != 0)
+			{
+				printf("Error: '%s' is not of type 'int'\n",K->k);
+				return 0;
+			}
+		}
+		else if(strcmp("double",t)==0)
+		{
+			char p[20];
+			snprintf(p,20,"%lf",atof(K->k));
+			if(strcmp(p,K->k) != 0)
+			{
+				printf("Error: '%s' is not of type 'double'\n",p);
+				return 0;
+			}
+		}
+		K = K->next;
+		t= strtok(NULL,",");
+	}
+	return 1;
+}
+
+void insertTable(struct key *K)
+{
+	chdir("database");
+	chdir(database);
+	if(access(K->k,F_OK) != -1)
+	{
+		/*
+		FILE *fp;
+		fp = fopen(K->k,"r");
+		K = K->next;
+		fclose(fp);
+		printf("Table created\n");
+		*/
+		if(validateData(K)==1)
+		{
+			printf("Fine\n");
+		}
 	}
 	else
 	{
@@ -308,6 +375,11 @@ void processQuery()
 		K = K->next;
 		descTable(K->k);
 	}
+	else if(strcmp("insert",K->k)==0)
+	{
+		K = K->next->next;
+		insertTable(K);
+	}
 }
 
 void deleteKeywords()
@@ -349,10 +421,8 @@ void cli()
         gets(query);
         if(strcmp(query,"exit") == 0)
             loop=0;
-        /*else if(strcmp(query,"clear") == 0)
+        else if(strcmp(query,"clear") == 0)
             system("clear");
-        else if(strcmp(query,"help") == 0)
-            help();*/
         else
         {
             run();
