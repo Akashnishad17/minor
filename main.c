@@ -175,8 +175,10 @@ int validateData(struct key *K)
 	fclose(fp);
 	K = K->next->next;
 	char *t = strtok(s,",");
+	int i=0;
 	while(t != NULL)
 	{
+		i++;
 		t= strtok(NULL,",");
 		if(strcmp("int",t)==0)
 		{
@@ -200,6 +202,16 @@ int validateData(struct key *K)
 		}
 		K = K->next;
 		t= strtok(NULL,",");
+		if(K == NULL && t != NULL)
+		{
+			printf("Error: Less number of attributes are given\n");
+			return 0;
+		}
+	}
+	if(K != NULL)
+	{
+		printf("Error: Table has %d attributes\n",i);
+		return 0;
 	}
 	return 1;
 }

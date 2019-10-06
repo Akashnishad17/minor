@@ -1,0 +1,6 @@
+room,int,name,string,owner,string,price,double
+300,palace,ak,5000
+333,grand,pk,6000
+44,ak,hh,600
+44,ak,hh,5000
+44,as,ffgg,600
