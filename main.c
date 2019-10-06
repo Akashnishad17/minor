@@ -191,10 +191,10 @@ int validateData(struct key *K)
 		else if(strcmp("double",t)==0)
 		{
 			char p[20];
-			snprintf(p,20,"%lf",atof(K->k));
+			snprintf(p,20,"%g",atof(K->k));
 			if(strcmp(p,K->k) != 0)
 			{
-				printf("Error: '%s' is not of type 'double'\n",p);
+				printf("Error: '%s' is not of type 'double'\n",K->k);
 				return 0;
 			}
 		}
@@ -210,16 +210,21 @@ void insertTable(struct key *K)
 	chdir(database);
 	if(access(K->k,F_OK) != -1)
 	{
-		/*
-		FILE *fp;
-		fp = fopen(K->k,"r");
-		K = K->next;
-		fclose(fp);
-		printf("Table created\n");
-		*/
 		if(validateData(K)==1)
 		{
-			printf("Fine\n");
+			FILE *fp;
+			fp = fopen(K->k,"a");
+			K = K->next->next;
+			fputc('\n',fp);
+			while(K != NULL)
+			{
+				fputs(K->k,fp);
+				K =	K->next;
+				if(K != NULL)
+					fputc(',',fp);
+			} 
+			fclose(fp);
+			printf("1 row inserted\n");
 		}
 	}
 	else
@@ -259,6 +264,60 @@ void descTable(char *K)
 	}
 	chdir("..");
 	chdir("..");
+}
+
+void selectAllCol(char *f)
+{
+	chdir("database");
+	chdir(database);
+	if(access(f,F_OK) != -1)
+	{
+		FILE *fp;
+		fp = fopen(f,"r");
+		char s[100];
+		fgets(s,100,fp);
+		char *t = strtok(s,",");
+		while(t != NULL)
+		{
+			printf("\t%s",t);
+			t= strtok(NULL,",");
+			t= strtok(NULL,",");
+		}
+		printf("\n");
+		int i=0;
+		while(fgets(s,100,fp) != NULL)
+		{
+			t = strtok(s,",");
+			while(t != NULL)
+			{
+			printf("\t%s",t);
+			t= strtok(NULL,",");
+			}
+			i++;
+		}
+		printf("\n%d row(s) selected\n",i);
+		fclose(fp);
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
+void selectTable(struct key *K)
+{
+	if (strcmp("from",K->k)==0)
+	{
+		K = K->next;
+		selectAllCol(K->k);
+	}
+	else
+	{
+		//selectFewCol();
+		printf("Coming Soon\n");
+	}
 }
 
 char query[100];
@@ -319,11 +378,11 @@ void storeKeywords(char *p)
 
 void findKeywords()
 {
-	char *t = strtok(query," (),;");
+	char *t = strtok(query," (),;*");
 	while(t != NULL)
 	{
 		storeKeywords(t);
-		t= strtok(NULL," (),;");
+		t= strtok(NULL," (),;*");
 	}
 }
 
@@ -379,6 +438,11 @@ void processQuery()
 	{
 		K = K->next->next;
 		insertTable(K);
+	}
+	else if(strcmp("select",K->k)==0)
+	{
+		K = K->next;
+		selectTable(K);
 	}
 }
 
