@@ -15,9 +15,10 @@ const char *s4 = "create database [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s5 = "create table [a-zA-Z_][a-zA-Z0-9_]+ ?\\(([a-zA-Z_][a-zA-Z0-9_]+ (int|string|double)\\,? ?)+\\);$";
 const char *s6 = "insert into [a-zA-Z_][a-zA-Z0-9_]+ values ?\\(([a-zA-Z0-9_\\.]+\\,?)+\\);$";
 const char *s7 = "show tables;$";
-const char *s8 = "select \\* ?from [a-zA-Z_][a-zA-Z0-9_]+;$";
+//const char *s8 = "select \\* ?from [a-zA-Z_][a-zA-Z0-9_]+;$";
 const char *s9 = "drop table [a-zA-Z_][a-zA-Z0-9_]+;$";
-const char *s10 = "select ([a-zA-Z_][a-zA-Z0-9_]+ ?\\,? ?)+ from [a-zA-Z_][a-zA-Z0-9_]+;$";
+//const char *s10 = "select ([a-zA-Z_][a-zA-Z0-9_]+ ?\\,? ?)+ from [a-zA-Z_][a-zA-Z0-9_]+;$";
+const char *s10 = "select (\\*|([_a-zA-Z][_a-zA-Z0-9]+ ?\\,? ?)*) ?from [_a-zA-Z][_a-zA-Z0-9]+( where [_a-zA-Z][_a-zA-Z0-9]+ (=|<|>|<=|>=) [a-zA-Z0-9.]+)?;$";
 const char *s11 = "desc [a-zA-Z_][a-zA-Z0-9_]+;$";
 
 struct key
@@ -318,17 +319,178 @@ void selectAllCol(char *f)
 	chdir("..");
 }
 
+int findWhereCol(char *col, char cols[])
+{
+	int i=0;
+	char *t = strtok(cols,",");
+	while(t != NULL)
+	{
+		if(strcmp(col,t) == 0)
+			return i;
+		t= strtok(NULL,",");
+		t= strtok(NULL,",");
+		i++;
+	}
+	return -1;
+}
+
+int findWhereValue(int col, char values[], char *value)
+{
+	int i=0,found=0;
+	char *t = strtok(values,",\n");
+	while(t != NULL)
+	{
+		if(col == i && strcmp(value,t)==0)
+		{
+			found = 1;
+			break;
+		}
+		t= strtok(NULL,",\n");
+		i++;
+	}
+	return found;
+}
+
+void selectTuple(struct key *K)
+{
+	chdir("database");
+	chdir(database);
+	if(access(K->k,F_OK) != -1)
+	{
+		FILE *fp;
+		fp = fopen(K->k,"r");
+		char s[100],s1[100];
+		fgets(s,100,fp);
+		strcpy(s1,s);
+		K = K->next;
+		K = K->next;
+		int col = findWhereCol(K->k,s1);
+		if(col == -1)
+		{
+			printf("Error: %s attribute is not present in the table\n",K->k);
+		}
+		else
+		{
+			char *t = strtok(s,",");
+			while(t != NULL)
+			{
+				printf("\t%s",t);
+				t= strtok(NULL,",");
+				t= strtok(NULL,",");
+			}
+			printf("\n");
+			int i=0;
+			K = K->next;
+			K = K->next;
+			while(fgets(s,100,fp) != NULL)
+			{
+				strcpy(s1,s);
+				if(findWhereValue(col, s1, K->k)==1)
+				{
+					t = strtok(s,",");
+					while(t != NULL)
+					{
+						printf("\t%s",t);
+						t= strtok(NULL,",");
+					}
+					i++;
+				}
+			}
+			printf("\n%d row(s) selected\n",i);
+			fclose(fp);
+		}
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
+void selectFewCol(struct key *K)
+{
+	char cols[100];
+	int col = 0;
+	while(strcmp("from",K->k) != 0)
+	{
+		strcat(cols,K->k);
+		strcat(cols,",");
+		K = K->next;
+		col++;
+	}
+	int col_arr[col];
+	K = K->next;
+	chdir("database");
+	chdir(database);
+	if(access(K->k,F_OK) != -1)
+	{
+		FILE *fp;
+		fp = fopen(K->k,"r");
+		char s[100];
+		fgets(s,100,fp);
+		char s1[100];
+		int j = 0;
+		char *t = strtok(cols,",");
+		while(t != NULL)
+		{
+			strcpy(s1,s);
+			int index = findWhereCol(t,s1);
+			if(index == -1)
+			{
+				printf("Error: %s attribute is not present in the table\n",t);
+				return;
+			}
+			else
+			{
+				col_arr[j] = index;
+				j++;
+			}
+			t = strtok(NULL,",");
+		}
+		t = strtok(s,",");
+		while(t != NULL)
+		{
+			printf("\t%s",t);
+			t= strtok(NULL,",");
+			t= strtok(NULL,",");
+		}
+		printf("\n");
+		int i=0;
+		while(fgets(s,100,fp) != NULL)
+		{
+			t = strtok(s,",");
+			while(t != NULL)
+			{
+			printf("\t%s",t);
+			t= strtok(NULL,",");
+			}
+			i++;
+		}
+		printf("\n%d row(s) selected\n",i);
+		fclose(fp);
+	}
+	else
+	{
+		printf("Table does not exist\n");
+	}
+	chdir("..");
+	chdir("..");
+}
+
 void selectTable(struct key *K)
 {
 	if (strcmp("from",K->k)==0)
 	{
 		K = K->next;
-		selectAllCol(K->k);
+		if(K->next == NULL)
+			selectAllCol(K->k);
+		else
+			selectTuple(K);
 	}
 	else
 	{
-		//selectFewCol();
-		printf("Coming Soon\n");
+		selectFewCol(K);
 	}
 }
 
@@ -360,8 +522,8 @@ int checkSyntax()
  		return 1;
  	else if(match(p,s7)==1)
  		return 1;
- 	else if(match(p,s8)==1)
- 		return 1;
+ 	/*else if(match(p,s8)==1)
+ 		return 1;*/
  	else if(match(p,s9)==1)
  		return 1;
  	else if(match(p,s10)==1)
