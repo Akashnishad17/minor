@@ -408,14 +408,13 @@ void selectTuple(struct key *K)
 	chdir("..");
 }
 
-void selectFewCol(struct key *K)
+void selectProjection(struct key *K)
 {
-	char cols[100];
+	char cols[10][10];
 	int col = 0;
 	while(strcmp("from",K->k) != 0)
 	{
-		strcat(cols,K->k);
-		strcat(cols,",");
+		strcpy(cols[col],K->k);
 		K = K->next;
 		col++;
 	}
@@ -430,42 +429,94 @@ void selectFewCol(struct key *K)
 		char s[100];
 		fgets(s,100,fp);
 		char s1[100];
-		int j = 0;
-		char *t = strtok(cols,",");
-		while(t != NULL)
+		int j,index;
+		for(j=0;j<col;j++)
 		{
 			strcpy(s1,s);
-			int index = findWhereCol(t,s1);
+			index = findWhereCol(cols[j],s1);
 			if(index == -1)
 			{
-				printf("Error: %s attribute is not present in the table\n",t);
+				printf("Error: %s attribute is not present in the table\n",cols[j]);
 				return;
 			}
 			else
 			{
 				col_arr[j] = index;
-				j++;
 			}
-			t = strtok(NULL,",");
 		}
-		t = strtok(s,",");
+		int w_index = -1;
+		if(K->next != NULL)
+		{
+			K = K->next;
+			K = K->next;
+			strcpy(s1,s);
+			w_index = findWhereCol(K->k,s1);
+			if(w_index == -1)
+			{
+				printf("Error: %s attribute is not present in the table\n",K->k);
+				return;
+			}
+			K = K->next;
+			K = K->next;
+		}
+		char *t = strtok(s,",");
+		j = 0;
+		index = 0;
 		while(t != NULL)
 		{
-			printf("\t%s",t);
+			if(col_arr[j] == index)
+			{
+				printf("\t%s",t);
+				j++;
+			}
 			t= strtok(NULL,",");
 			t= strtok(NULL,",");
+			index++;
 		}
 		printf("\n");
 		int i=0;
 		while(fgets(s,100,fp) != NULL)
 		{
-			t = strtok(s,",");
-			while(t != NULL)
+			strcpy(s1,s);
+			if(w_index >= 0)
 			{
-			printf("\t%s",t);
-			t= strtok(NULL,",");
+				if(findWhereValue(w_index,s1,K->k)==1)
+				{
+					j = 0;
+					index = 0;
+					t = strtok(s,",\n");
+					while(t != NULL)
+					{
+						if(col_arr[j] == index)
+						{
+							printf("\t%s",t);
+							j++;
+						}
+						t= strtok(NULL,",\n");
+						index++;
+					}
+					i++;
+					printf("\n");
+				}
 			}
-			i++;
+			else
+			{
+				j = 0;
+				index = 0;
+				t = strtok(s,",\n");
+				while(t != NULL)
+				{
+					if(col_arr[j] == index)
+					{
+						printf("\t%s",t);
+						j++;
+					}
+					t= strtok(NULL,",\n");
+					index++;
+				}
+				i++;
+				printf("\n");
+			}
 		}
 		printf("\n%d row(s) selected\n",i);
 		fclose(fp);
@@ -490,7 +541,7 @@ void selectTable(struct key *K)
 	}
 	else
 	{
-		selectFewCol(K);
+		selectProjection(K);
 	}
 }
 
